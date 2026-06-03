@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Вакансии{% endblock %}
+{% block content %}
+<div class="section-divider"><h5><i class="bi bi-briefcase me-2" style="color:var(--gold)"></i>Вакансии</h5></div>
+{% for v in vacancies %}
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <h5 class="fw-bold">{{ v.title }}</h5>
+            {% if v.salary_from or v.salary_to %}
+            <span class="badge badge-gold">{% if v.salary_from %}от {{ v.salary_from }}{% endif %}{% if v.salary_to %} до {{ v.salary_to }}{% endif %} руб.</span>
+            {% endif %}
+        </div>
+        <p class="text-muted mb-1">{{ v.description }}</p>
+        {% if v.requirements %}<p class="small"><strong>Требования:</strong> {{ v.requirements }}</p>{% endif %}
+        <small class="text-muted">{{ v.created_at|date:"d/m/Y" }}</small>
+    </div>
+</div>
+{% empty %}<p class="text-muted">Активных вакансий нет.</p>
+{% endfor %}
+{% endblock %}

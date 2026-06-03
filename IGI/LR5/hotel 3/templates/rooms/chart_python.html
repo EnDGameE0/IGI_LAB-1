@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Графики Python{% endblock %}
+{% block content %}
+<div class="section-divider"><h5><i class="bi bi-bar-chart-line me-2" style="color:var(--gold)"></i>Графики — Python/matplotlib</h5></div>
+<p class="text-muted mb-4">Сгенерировано на сервере через <strong>matplotlib</strong>. Никакого JS для отрисовки.</p>
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="kpi-card"><small class="text-muted">UTC (в БД)</small><div class="font-monospace fw-bold">{{ utc_now|date:"d/m/Y H:i:s" }} UTC</div></div></div>
+    <div class="col-md-4"><div class="kpi-card"><small class="text-muted">{{ timezone }}</small><div class="font-monospace fw-bold" style="color:var(--blue)">{{ local_now|date:"d/m/Y H:i:s" }}</div></div></div>
+    <div class="col-md-4"><div class="kpi-card"><small class="text-muted">Календарь (Python)</small><pre class="mb-0" style="font-size:.7rem">{{ text_calendar }}</pre></div></div>
+</div>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header fw-bold" style="background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff"><i class="bi bi-bar-chart"></i> Выручка и заезды — matplotlib</div>
+    <div class="card-body text-center"><img src="data:image/png;base64,{{ chart1_b64 }}" class="img-fluid rounded" style="max-width:900px"></div>
+</div>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header fw-bold" style="background:linear-gradient(135deg,#1565c0,#42a5f5);color:#fff"><i class="bi bi-list-ol"></i> Номера по категориям — matplotlib</div>
+    <div class="card-body text-center"><img src="data:image/png;base64,{{ chart2_b64 }}" class="img-fluid rounded" style="max-width:700px"></div>
+</div>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header fw-bold" style="background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy)"><i class="bi bi-pie-chart"></i> Брони по статусам — matplotlib</div>
+    <div class="card-body text-center"><img src="data:image/png;base64,{{ chart3_b64 }}" class="img-fluid rounded" style="max-width:600px"></div>
+</div>
+<a href="{% url 'rooms:statistics' %}" class="btn btn-outline-navy">← Статистика</a>
+{% endblock %}

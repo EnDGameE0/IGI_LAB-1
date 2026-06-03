@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Бронь #{{ booking.pk }}{% endblock %}
+{% block content %}
+<a href="{% url 'rooms:booking_list' %}" class="btn btn-outline-navy btn-sm mb-3">← Назад</a>
+<div class="row g-4">
+<div class="col-md-7">
+    <div class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between mb-3">
+            <h3 class="fw-bold">Бронь #{{ booking.pk }}</h3>
+            <span class="badge fs-6 {% if booking.status == 'checked_out' %}bg-secondary{% elif booking.status == 'checked_in' %}bg-success{% elif booking.status == 'cancelled' %}bg-danger{% else %}bg-primary{% endif %}">{{ booking.get_status_display }}</span>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4 text-center border-end">
+                <div class="text-muted small">Заезд</div>
+                <div class="fw-bold">{{ booking.check_in|date:"d/m/Y" }}</div>
+            </div>
+            <div class="col-md-4 text-center border-end">
+                <div class="text-muted small">Выезд</div>
+                <div class="fw-bold">{{ booking.check_out|date:"d/m/Y" }}</div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="text-muted small">Ночей</div>
+                <div class="fw-bold">{{ booking.nights }}</div>
+            </div>
+        </div>
+        <hr>
+        <p><strong>Номер:</strong> {{ booking.room.number }} — {{ booking.room.category }}</p>
+        <p><strong>Гостей:</strong> {{ booking.guests_count }}</p>
+        {% if booking.special_requests %}<p><strong>Пожелания:</strong> {{ booking.special_requests }}</p>{% endif %}
+        <hr>
+        {% if booking.discount_amount %}<p class="text-success">Скидка: -{{ booking.discount_amount }} руб.</p>{% endif %}
+        <h5>Итого: <strong>{{ booking.total_price }} руб.</strong></h5>
+        <small class="text-muted">Создано: {{ booking.created_at|date:"d/m/Y H:i" }} UTC | {{ booking.created_at|date:"d/m/Y H:i" }}</small>
+    </div>
+</div>
+<div class="col-md-5">
+    <div class="card border-0 shadow-sm p-3 mb-3">
+        <h6 class="fw-bold mb-3">Клиент</h6>
+        <p class="mb-1">{{ booking.client.full_name }}</p>
+        <p class="mb-1 small">{{ booking.client.phone }}</p>
+        <p class="mb-0 small">{{ booking.client.email }}</p>
+        {% if booking.client.has_children %}<span class="badge badge-gold mt-1">Есть дети</span>{% endif %}
+    </div>
+    {% if payments %}
+    <div class="card border-0 shadow-sm p-3 mb-3">
+        <h6 class="fw-bold mb-3">Платежи</h6>
+        {% for pay in payments %}
+        <div class="d-flex justify-content-between small mb-1">
+            <span>{{ pay.get_method_display }} — {{ pay.paid_at|date:"d/m/Y" }}</span>
+            <span class="fw-bold">{{ pay.amount }} руб.</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if user.is_staff or user.role == 'employee' %}
+    <a href="{% url 'rooms:booking_update' booking.pk %}" class="btn btn-outline-navy w-100 mb-2"><i class="bi bi-pencil"></i> Редактировать</a>
+    {% if user.is_staff %}
+    <a href="{% url 'rooms:booking_delete' booking.pk %}" class="btn btn-outline-danger w-100"><i class="bi bi-trash"></i> Удалить</a>
+    {% endif %}
+    {% elif user.is_authenticated %}
+    {# Клиент может редактировать и удалять свою бронь #}
+    {% if booking.client.user == user %}
+    <a href="{% url 'rooms:booking_update' booking.pk %}" class="btn btn-outline-navy w-100 mb-2"><i class="bi bi-pencil"></i> Изменить бронь</a>
+    <a href="{% url 'rooms:booking_delete' booking.pk %}" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle"></i> Отменить бронь</a>
+    {% endif %}
+    {% endif %}
+</div>
+</div>
+{% endblock %}

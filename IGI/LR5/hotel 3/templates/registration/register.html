@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Регистрация{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8 col-md-10">
+<div class="form-panel">
+    <div class="form-panel-header d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(255,255,255,.2)"><i class="bi bi-person-plus fs-4"></i></div>
+        <div><h5 class="mb-0">Создать аккаунт</h5><small style="opacity:.8">Регистрация гостя</small></div>
+    </div>
+    <div class="form-panel-body">
+        <form method="post" id="regForm" novalidate>{% csrf_token %}
+        <!-- Имя + Фамилия -->
+        <div class="row g-3 mb-3">
+        {% for field in form %}{% if field.name == 'first_name' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label>{{ field }}{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% if field.name == 'last_name' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label>{{ field }}{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% endfor %}
+        </div>
+        <!-- Логин + Email -->
+        <div class="row g-3 mb-3">
+        {% for field in form %}{% if field.name == 'username' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label><div class="input-group"><span class="input-group-text"><i class="bi bi-at"></i></span>{{ field }}</div>{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% if field.name == 'email' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label><div class="input-group"><span class="input-group-text"><i class="bi bi-envelope"></i></span>{{ field }}</div>{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% endfor %}
+        </div>
+        <!-- Телефон + ДР -->
+        <div class="row g-3 mb-3">
+        {% for field in form %}{% if field.name == 'phone' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }}</label><div class="input-group"><span class="input-group-text"><i class="bi bi-telephone"></i></span>{{ field }}</div>{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% if field.name == 'birth_date' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }}</label><div class="input-group"><span class="input-group-text"><i class="bi bi-calendar3"></i></span>{{ field }}</div>{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}<div class="text-danger small mt-1 d-none" id="bdErr"><i class="bi bi-exclamation-circle"></i> Возраст должен быть не менее 18 лет</div></div>
+        {% endif %}{% endfor %}
+        </div>
+        <!-- Пароли -->
+        <div class="row g-3 mb-4">
+        {% for field in form %}{% if field.name == 'password1' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label><div class="input-group"><span class="input-group-text"><i class="bi bi-lock"></i></span>{{ field }}</div>{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% if field.name == 'password2' %}
+        <div class="col-md-6"><label class="form-label">{{ field.label }} <span class="text-danger">*</span></label><div class="input-group"><span class="input-group-text"><i class="bi bi-lock-fill"></i></span>{{ field }}</div>{% if field.errors %}<div class="text-danger small mt-1">{% for e in field.errors %}{{ e }}{% endfor %}</div>{% endif %}</div>
+        {% endif %}{% endfor %}
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+            <p class="mb-0 text-muted small">Уже есть аккаунт? <a href="{% url 'users:login' %}" style="color:var(--blue);font-weight:600">Войти →</a></p>
+            <button type="submit" class="btn btn-navy px-5 py-2"><i class="bi bi-check2-circle me-1"></i> Зарегистрироваться</button>
+        </div>
+        </form>
+    </div>
+</div>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('regForm').addEventListener('submit', function(e) {
+    const bd = document.getElementById('id_birth_date');
+    if (!bd || !bd.value) return;
+    const age18 = new Date(new Date(bd.value).setFullYear(new Date(bd.value).getFullYear()+18));
+    if (new Date() < age18) { e.preventDefault(); document.getElementById('bdErr').classList.remove('d-none'); bd.classList.add('is-invalid'); bd.scrollIntoView({behavior:'smooth',block:'center'}); }
+});
+const bdF = document.getElementById('id_birth_date');
+if(bdF) bdF.addEventListener('change', function(){
+    const age18 = new Date(new Date(this.value).setFullYear(new Date(this.value).getFullYear()+18));
+    const err = document.getElementById('bdErr');
+    if(new Date()<age18){err.classList.remove('d-none');this.classList.add('is-invalid');this.classList.remove('is-valid');}
+    else{err.classList.add('d-none');this.classList.remove('is-invalid');this.classList.add('is-valid');}
+});
+</script>
+{% endblock %}

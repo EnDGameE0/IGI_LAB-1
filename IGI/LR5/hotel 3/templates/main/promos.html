@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Промокоды{% endblock %}
+{% block content %}
+<div class="section-divider"><h5><i class="bi bi-ticket-perforated me-2" style="color:var(--gold)"></i>Промокоды и купоны</h5></div>
+<h6 class="text-success mb-3 mt-2">Действующие предложения</h6>
+<div class="row g-3 mb-4">
+{% for p in active_promos %}
+<div class="col-md-4">
+    <div class="card border-0 shadow-sm" style="border-top:4px solid var(--gold) !important">
+        <div class="card-body">
+            <h5 class="fw-bold font-monospace" style="color:var(--navy)">{{ p.code }}</h5>
+            <div class="badge badge-gold mb-2">Скидка {{ p.discount_percent }}%</div>
+            <p class="small text-muted mb-1">{{ p.valid_from|date:"d/m/Y" }} — {{ p.valid_to|date:"d/m/Y" }}</p>
+            <p class="small">{{ p.description }}</p>
+        </div>
+    </div>
+</div>
+{% empty %}<div class="col"><p class="text-muted">Нет активных промокодов.</p></div>
+{% endfor %}
+</div>
+<h6 class="text-secondary mb-3">Архив</h6>
+<div class="row g-3">
+{% for p in archive_promos %}
+<div class="col-md-4">
+    <div class="card border-0 shadow-sm opacity-65">
+        <div class="card-body">
+            <h6 class="font-monospace text-muted"><s>{{ p.code }}</s></h6>
+            <small class="text-muted">{{ p.discount_percent }}% | {{ p.valid_from|date:"d/m/Y" }} — {{ p.valid_to|date:"d/m/Y" }}</small>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

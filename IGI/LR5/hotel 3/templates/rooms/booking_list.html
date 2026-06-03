@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Брони{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="section-divider flex-grow-1 me-3"><h5><i class="bi bi-calendar-check me-2" style="color:var(--gold)"></i>Брони</h5></div>
+    {% if user.is_staff or user.role == 'employee' %}
+    <a href="{% url 'rooms:booking_create' %}" class="btn btn-navy"><i class="bi bi-plus-circle"></i> Новая</a>
+    {% endif %}
+</div>
+<form method="get" class="mb-3 d-flex gap-2">
+    <input type="text" name="search" value="{{ search }}" placeholder="Поиск по клиенту или номеру..." class="form-control" style="max-width:300px">
+    <select name="sort" class="form-select" style="max-width:200px">
+        <option value="-created_at">Сначала новые</option>
+        <option value="check_in">По дате заезда</option>
+        <option value="total_price">Сумма ↑</option>
+        <option value="-total_price">Сумма ↓</option>
+    </select>
+    <button type="submit" class="btn btn-navy">Найти</button>
+    <a href="{% url 'rooms:booking_list' %}" class="btn btn-outline-navy">Сброс</a>
+</form>
+<div class="table-responsive">
+<table class="table table-hover shadow-sm">
+<thead><tr><th>#</th><th>Номер</th><th>Клиент</th><th>Заезд</th><th>Выезд</th><th>Статус</th><th>Сумма</th><th></th></tr></thead>
+<tbody>
+{% for b in page_obj %}
+<tr>
+    <td><a href="{% url 'rooms:booking_detail' b.pk %}">#{{ b.pk }}</a></td>
+    <td>{{ b.room.number }}</td>
+    <td>{{ b.client.full_name }}</td>
+    <td>{{ b.check_in|date:"d/m/Y" }}</td>
+    <td>{{ b.check_out|date:"d/m/Y" }}</td>
+    <td><span class="badge {% if b.status == 'checked_out' %}bg-secondary{% elif b.status == 'checked_in' %}bg-success{% elif b.status == 'cancelled' %}bg-danger{% elif b.status == 'confirmed' %}bg-primary{% else %}bg-warning text-dark{% endif %}">{{ b.get_status_display }}</span></td>
+    <td>{{ b.total_price }} руб.</td>
+    <td>
+        {% if user.is_staff or user.role == 'employee' %}
+        <a href="{% url 'rooms:booking_update' b.pk %}" class="btn btn-sm btn-outline-navy"><i class="bi bi-pencil"></i></a>
+        {% if user.is_staff %}<a href="{% url 'rooms:booking_delete' b.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>{% endif %}
+        {% elif user.is_authenticated %}
+        {% if b.client.user == user %}
+        <a href="{% url 'rooms:booking_update' b.pk %}" class="btn btn-sm btn-outline-navy" title="Изменить"><i class="bi bi-pencil"></i></a>
+        <a href="{% url 'rooms:booking_delete' b.pk %}" class="btn btn-sm btn-outline-danger" title="Удалить"><i class="bi bi-trash"></i></a>
+        {% endif %}
+        {% endif %}
+    </td>
+</tr>
+{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">Броней нет.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}
