@@ -146,8 +146,8 @@ def reviews(request):
 @login_required
 def review_update(request, pk):
     review = get_object_or_404(Review, pk=pk)
-    # Сотрудник или админ могут редактировать любые отзывы
-    if not (request.user.is_staff or request.user.is_employee() or review.author == request.user):
+    # Админ может редактировать любые отзывы
+    if not (request.user.is_staff or review.author == request.user):
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:reviews')
     if request.method == 'POST':
@@ -166,8 +166,8 @@ def review_update(request, pk):
 @login_required
 def review_delete(request, pk):
     review = get_object_or_404(Review, pk=pk)
-    # Сотрудник или админ могут удалять любые отзывы
-    if not (request.user.is_staff or request.user.is_employee() or review.author == request.user):
+    # Админ может удалять любые отзывы
+    if not (request.user.is_staff or review.author == request.user):
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:reviews')
     if request.method == 'POST':
@@ -224,7 +224,7 @@ def room_detail(request, pk):
 
 @login_required
 def room_create(request):
-    if not (request.user.is_staff or request.user.is_employee()):
+    if not request.user.is_staff:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:room_list')
     if request.method == 'POST':
@@ -241,7 +241,7 @@ def room_create(request):
 @login_required
 def room_update(request, pk):
     room = get_object_or_404(Room, pk=pk)
-    if not (request.user.is_staff or request.user.is_employee()):
+    if not request.user.is_staff:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:room_detail', pk=pk)
     if request.method == 'POST':
@@ -259,7 +259,7 @@ def room_update(request, pk):
 @login_required
 def room_delete(request, pk):
     room = get_object_or_404(Room, pk=pk)
-    if not request.user.is_staff:
+    if not request.user.is_superuser:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:room_detail', pk=pk)
     if request.method == 'POST':
@@ -269,12 +269,12 @@ def room_delete(request, pk):
     return render(request, 'rooms/room_confirm_delete.html', {'room': room})
 
 
-# ══════════════════════════ БРОНИ (CRUD) — РАСШИРЕННЫЙ ДОСТУП ДЛЯ СОТРУДНИКА ══════════════════════════
+# ══════════════════════════ БРОНИ (CRUD) ══════════════════════════
 
 @login_required
 def booking_list(request):
-    # Сотрудник и админ видят ВСЕ брони, клиент — только свои
-    if request.user.is_staff or request.user.is_employee():
+    # Админ и сотрудник (is_staff) видят ВСЕ брони, клиент — только свои
+    if request.user.is_staff:
         qs = Booking.objects.all().select_related('room', 'client', 'employee')
     elif hasattr(request.user, 'is_client') and request.user.is_client():
         try:
@@ -300,14 +300,14 @@ def booking_list(request):
 @login_required
 def booking_detail(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
-    # Проверка доступа: админ, сотрудник или владелец-клиент
+    # Проверка доступа: админ/staff или владелец-клиент
     is_owner = False
     if hasattr(request.user, 'is_client') and request.user.is_client():
         try:
             is_owner = booking.client == request.user.client_profile
         except Exception:
             pass
-    if not (request.user.is_staff or request.user.is_employee() or is_owner):
+    if not (request.user.is_staff or is_owner):
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:booking_list')
     payments = booking.payments.all()
@@ -318,7 +318,7 @@ def booking_detail(request, pk):
 @login_required
 def booking_create(request):
     is_client = hasattr(request.user, 'is_client') and request.user.is_client()
-    is_staff_or_emp = request.user.is_staff or (hasattr(request.user, 'is_employee') and request.user.is_employee())
+    is_staff_or_emp = request.user.is_staff
 
     if not (is_staff_or_emp or is_client):
         messages.error(request, 'Нет доступа.')
@@ -354,7 +354,7 @@ def booking_create(request):
 @login_required
 def booking_update(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
-    is_staff_or_emp = request.user.is_staff or (hasattr(request.user, 'is_employee') and request.user.is_employee())
+    is_staff_or_emp = request.user.is_staff
     is_own_booking = False
     if hasattr(request.user, 'is_client') and request.user.is_client():
         try:
@@ -411,11 +411,11 @@ def booking_delete(request, pk):
     return render(request, 'rooms/booking_confirm_delete.html', {'booking': booking})
 
 
-# ══════════════════════════ КЛИЕНТЫ (CRUD) — ДЛЯ СОТРУДНИКА И АДМИНА ══════════════════════════
+# ══════════════════════════ КЛИЕНТЫ (CRUD) — ДЛЯ АДМИНА И СОТРУДНИКА ══════════════════════════
 
 @login_required
 def client_list(request):
-    if not (request.user.is_staff or request.user.is_employee()):
+    if not request.user.is_staff:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:room_list')
     search = request.GET.get('search', '')
@@ -434,7 +434,7 @@ def client_list(request):
 
 @login_required
 def client_create(request):
-    if not (request.user.is_staff or request.user.is_employee()):
+    if not request.user.is_staff:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:room_list')
     if request.method == 'POST':
@@ -451,7 +451,7 @@ def client_create(request):
 @login_required
 def client_update(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    if not (request.user.is_staff or request.user.is_employee()):
+    if not request.user.is_staff:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:client_list')
     if request.method == 'POST':
@@ -469,7 +469,7 @@ def client_update(request, pk):
 @login_required
 def client_delete(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    if not request.user.is_staff:
+    if not request.user.is_superuser:
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:client_list')
     if request.method == 'POST':

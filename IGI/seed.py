@@ -29,27 +29,27 @@ def seed():
     else:
         print('⚠️ Суперпользователь admin уже существует', flush=True)
 
-    # =========================================================
-    # 2. ОБЫЧНЫЕ ПОЛЬЗОВАТЕЛИ (клиенты + сотрудники)
+       # =========================================================
+    # 2. ОБЫЧНЫЕ ПОЛЬЗОВАТЕЛИ (клиенты + сотрудник)
     # =========================================================
     users_data = [
-        # Клиенты (is_staff=False, is_employee=False)
-        ('client1', 'client1@example.com', 'client123', 'Иван', 'Петров', '+375291234567', date(1990, 5, 15), False, False),
-        ('client2', 'client2@example.com', 'client123', 'Мария', 'Иванова', '+375293334455', date(1985, 8, 22), False, False),
-        ('client3', 'client3@example.com', 'client123', 'Сергей', 'Сидоров', '+375445556677', date(1995, 3, 10), False, False),
-        ('client4', 'client4@example.com', 'client123', 'Анна', 'Козлова', '+375296667788', date(1988, 11, 30), False, False),
-        ('client5', 'client5@example.com', 'client123', 'Павел', 'Воробьёв', '+375336022222', date(2000, 1, 20), False, False),
-        ('client6', 'client6@example.com', 'client123', 'Ольга', 'Захарова', '+375296011111', date(1992, 7, 7), False, False),
-        ('client7', 'client7@example.com', 'client123', 'Виктор', 'Новиков', '+375296100000', date(1980, 12, 1), False, False),
-        ('client8', 'client8@example.com', 'client123', 'Наталья', 'Попова', '+375336055555', date(1998, 6, 25), False, False),
-        ('client9', 'client9@example.com', 'client123', 'Алексей', 'Кузнецов', '+375296044444', date(1975, 4, 18), False, False),
-        ('client10', 'client10@example.com', 'client123', 'Егор', 'Лебедев', '+375446066666', date(2002, 9, 12), False, False),
-        # Сотрудник (is_staff=True, is_employee=True)
-        ('receptionist_a', 'receptionist_a@hotel.by', 'emp123', 'Анна', 'Иванова', '+375291111111', date(1988, 3, 10), True, True),
+        # Клиенты (is_staff=False)
+        ('client1', 'client1@example.com', 'client123', 'Иван', 'Петров', '+375291234567', date(1990, 5, 15), False),
+        ('client2', 'client2@example.com', 'client123', 'Мария', 'Иванова', '+375293334455', date(1985, 8, 22), False),
+        ('client3', 'client3@example.com', 'client123', 'Сергей', 'Сидоров', '+375445556677', date(1995, 3, 10), False),
+        ('client4', 'client4@example.com', 'client123', 'Анна', 'Козлова', '+375296667788', date(1988, 11, 30), False),
+        ('client5', 'client5@example.com', 'client123', 'Павел', 'Воробьёв', '+375336022222', date(2000, 1, 20), False),
+        ('client6', 'client6@example.com', 'client123', 'Ольга', 'Захарова', '+375296011111', date(1992, 7, 7), False),
+        ('client7', 'client7@example.com', 'client123', 'Виктор', 'Новиков', '+375296100000', date(1980, 12, 1), False),
+        ('client8', 'client8@example.com', 'client123', 'Наталья', 'Попова', '+375336055555', date(1998, 6, 25), False),
+        ('client9', 'client9@example.com', 'client123', 'Алексей', 'Кузнецов', '+375296044444', date(1975, 4, 18), False),
+        ('client10', 'client10@example.com', 'client123', 'Егор', 'Лебедев', '+375446066666', date(2002, 9, 12), False),
+        # Сотрудник (is_staff=True)
+        ('receptionist_a', 'receptionist_a@hotel.by', 'emp123', 'Анна', 'Иванова', '+375291111111', date(1988, 3, 10), True),
     ]
 
     created_users = {}
-    for username, email, pwd, first, last, phone, birth, is_staff, is_employee in users_data:
+    for username, email, pwd, first, last, phone, birth, is_staff in users_data:
         user, created = User.objects.get_or_create(
             username=username,
             defaults={
@@ -64,11 +64,8 @@ def seed():
         if created:
             user.set_password(pwd)
             user.save()
-            # Добавляем флаг is_employee в дополнительное поле или группу
-            if is_employee:
-                user.groups.add(1)  # Предполагаем, что группа Employee имеет id=1
             print(f'👤 Создан пользователь {username} ({first} {last})', flush=True)
-        created_users[username] = user
+        created_users[username] = users[username] = user
 
     # =========================================================
     # 3. ИНФОРМАЦИЯ О КОМПАНИИ

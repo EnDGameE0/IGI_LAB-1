@@ -130,13 +130,13 @@
                 </li>
                 {% if user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link px-3" href="{% url 'rooms:booking_list' %}"><i class="bi bi-calendar-check"></i> Брони</a></li>
-                {% if user.is_staff or user.is_employee %}
+                {% if user.is_staff %}
                 <li class="nav-item"><a class="nav-link px-3" href="{% url 'rooms:client_list' %}"><i class="bi bi-people-fill"></i> Клиенты</a></li>
                 {% endif %}
                 {% if user.is_superuser %}
                 <li class="nav-item"><a class="nav-link px-3" href="{% url 'rooms:statistics' %}"><i class="bi bi-graph-up-arrow"></i> Статистика</a></li>
                 {% endif %}
-                {% endif %}
+                {% endif %} 
             </ul>
             <ul class="navbar-nav gap-2">
                 {% if user.is_authenticated %}
