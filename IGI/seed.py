@@ -33,25 +33,23 @@ def seed():
     # 2. ОБЫЧНЫЕ ПОЛЬЗОВАТЕЛИ (клиенты + сотрудники)
     # =========================================================
     users_data = [
-        # Клиенты
-        ('client1', 'client1@example.com', 'client123', 'Иван', 'Петров', '+375291234567', date(1990, 5, 15)),
-        ('client2', 'client2@example.com', 'client123', 'Мария', 'Иванова', '+375293334455', date(1985, 8, 22)),
-        ('client3', 'client3@example.com', 'client123', 'Сергей', 'Сидоров', '+375445556677', date(1995, 3, 10)),
-        ('client4', 'client4@example.com', 'client123', 'Анна', 'Козлова', '+375296667788', date(1988, 11, 30)),
-        ('client5', 'client5@example.com', 'client123', 'Павел', 'Воробьёв', '+375336022222', date(2000, 1, 20)),
-        ('client6', 'client6@example.com', 'client123', 'Ольга', 'Захарова', '+375296011111', date(1992, 7, 7)),
-        ('client7', 'client7@example.com', 'client123', 'Виктор', 'Новиков', '+375296100000', date(1980, 12, 1)),
-        ('client8', 'client8@example.com', 'client123', 'Наталья', 'Попова', '+375336055555', date(1998, 6, 25)),
-        ('client9', 'client9@example.com', 'client123', 'Алексей', 'Кузнецов', '+375296044444', date(1975, 4, 18)),
-        ('client10', 'client10@example.com', 'client123', 'Егор', 'Лебедев', '+375446066666', date(2002, 9, 12)),
-        # Сотрудники
-        ('receptionist_a', 'receptionist_a@hotel.by', 'emp123', 'Анна', 'Иванова', '+375291111111', date(1988, 3, 10)),
-        ('manager_b', 'manager_b@hotel.by', 'emp123', 'Сергей', 'Петров', '+375332222222', date(1985, 7, 20)),
-        ('concierge_c', 'concierge_c@hotel.by', 'emp123', 'Татьяна', 'Сидорова', '+375443333333', date(1990, 11, 5)),
+        # Клиенты (is_staff=False, is_employee=False)
+        ('client1', 'client1@example.com', 'client123', 'Иван', 'Петров', '+375291234567', date(1990, 5, 15), False, False),
+        ('client2', 'client2@example.com', 'client123', 'Мария', 'Иванова', '+375293334455', date(1985, 8, 22), False, False),
+        ('client3', 'client3@example.com', 'client123', 'Сергей', 'Сидоров', '+375445556677', date(1995, 3, 10), False, False),
+        ('client4', 'client4@example.com', 'client123', 'Анна', 'Козлова', '+375296667788', date(1988, 11, 30), False, False),
+        ('client5', 'client5@example.com', 'client123', 'Павел', 'Воробьёв', '+375336022222', date(2000, 1, 20), False, False),
+        ('client6', 'client6@example.com', 'client123', 'Ольга', 'Захарова', '+375296011111', date(1992, 7, 7), False, False),
+        ('client7', 'client7@example.com', 'client123', 'Виктор', 'Новиков', '+375296100000', date(1980, 12, 1), False, False),
+        ('client8', 'client8@example.com', 'client123', 'Наталья', 'Попова', '+375336055555', date(1998, 6, 25), False, False),
+        ('client9', 'client9@example.com', 'client123', 'Алексей', 'Кузнецов', '+375296044444', date(1975, 4, 18), False, False),
+        ('client10', 'client10@example.com', 'client123', 'Егор', 'Лебедев', '+375446066666', date(2002, 9, 12), False, False),
+        # Сотрудник (is_staff=True, is_employee=True)
+        ('receptionist_a', 'receptionist_a@hotel.by', 'emp123', 'Анна', 'Иванова', '+375291111111', date(1988, 3, 10), True, True),
     ]
 
     created_users = {}
-    for username, email, pwd, first, last, phone, birth in users_data:
+    for username, email, pwd, first, last, phone, birth, is_staff, is_employee in users_data:
         user, created = User.objects.get_or_create(
             username=username,
             defaults={
@@ -59,17 +57,21 @@ def seed():
                 'first_name': first,
                 'last_name': last,
                 'phone': phone,
-                'birth_date': birth
+                'birth_date': birth,
+                'is_staff': is_staff,
             }
         )
         if created:
             user.set_password(pwd)
             user.save()
+            # Добавляем флаг is_employee в дополнительное поле или группу
+            if is_employee:
+                user.groups.add(1)  # Предполагаем, что группа Employee имеет id=1
             print(f'👤 Создан пользователь {username} ({first} {last})', flush=True)
         created_users[username] = user
 
     # =========================================================
-    # 3. ИНФОРМАЦИЯ О КОМПАНИИ (О нас)
+    # 3. ИНФОРМАЦИЯ О КОМПАНИИ
     # =========================================================
     CompanyInfo.objects.get_or_create(
         name='Гостиница «Олимп»',
@@ -86,15 +88,13 @@ def seed():
     print('🏢 Создана информация о компании', flush=True)
 
     # =========================================================
-    # 4. СОТРУДНИКИ (связь с пользователями)
+    # 4. СОТРУДНИКИ
     # =========================================================
-    employee_positions = {
-        'receptionist_a': ('admin', date(2022, 1, 15), 1200),
-        'manager_b': ('manager', date(2021, 6, 10), 1500),
-        'concierge_c': ('concierge', date(2023, 3, 20), 900),
-    }
+    employee_users = [
+        ('receptionist_a', 'admin', date(2022, 1, 15), 1200),
+    ]
 
-    for username, (position, hire_date, salary) in employee_positions.items():
+    for username, position, hire_date, salary in employee_users:
         user = created_users.get(username)
         if user:
             Employee.objects.get_or_create(
@@ -109,7 +109,7 @@ def seed():
     print(f'👔 Создано {Employee.objects.count()} сотрудников', flush=True)
 
     # =========================================================
-    # 5. КЛИЕНТЫ (связь с пользователями)
+    # 5. КЛИЕНТЫ
     # =========================================================
     client_users = [f'client{i}' for i in range(1, 11)]
     for username in client_users:
@@ -147,7 +147,7 @@ def seed():
     print(f'📁 Создано {RoomCategory.objects.count()} категорий', flush=True)
 
     # =========================================================
-    # 7. НОМЕРА (15 штук)
+    # 7. НОМЕРА
     # =========================================================
     rooms_data = [
         ('101', 'Стандартный', 1, 55, 'Уютный одноместный номер на первом этаже.', 1, 18),
@@ -183,26 +183,16 @@ def seed():
     print(f'🛏️ Создано {Room.objects.count()} номеров', flush=True)
 
     # =========================================================
-    # 8. НОВОСТИ (15 штук)
+    # 8. НОВОСТИ
     # =========================================================
     news_data = [
-        ('Детская комната открыта', 'Игровая зона для маленьких гостей', 'Теперь в нашей гостинице есть детская комната с аниматором. Часы работы: 10:00-20:00.'),
+        ('Детская комната открыта', 'Игровая зона для маленьких гостей', 'Теперь в нашей гостинице есть детская комната с аниматором.'),
         ('Фитнес-центр обновлён', 'Новое оборудование в зале', 'Мы закупили новые беговые дорожки и силовые тренажёры.'),
         ('Новые апартаменты', 'Представляем расширенный номерной фонд', 'Открылись новые просторные апартаменты на 4-м этаже.'),
         ('Трансфер из аэропорта', 'Новая услуга для гостей', 'Заказывайте трансфер из аэропорта Минск-2.'),
         ('День рождения в «Олимпе»', 'Отпразднуйте с нами', 'Организуем праздник в ресторане со скидкой 20%.'),
         ('Акция: раннее бронирование', 'Скидки при бронировании за 30 дней', 'Забронируйте номер за 30 дней и получите скидку 15%.'),
-        ('Экскурсии по Минску', 'Организуем туры для гостей', 'Групповые и индивидуальные экскурсии по столице.'),
-        ('Конференц-зал для бизнеса', 'Аренда зала для мероприятий', 'Вместимость до 50 человек. Оборудование входит в стоимость.'),
-        ('Летнее меню ресторана', 'Свежие блюда этого сезона', 'Шеф-повар обновил меню: салаты, рыбные блюда, десерты.'),
-        ('Новый SPA-комплекс', 'Приглашаем насладиться', 'Сауна, хамам, массажный кабинет.'),
-        ('Новогодняя акция', 'Скидки до 30%', 'Забронируйте проживание на новогодние праздники.'),
-        ('Бесплатный Wi-Fi', 'Скоростной интернет по всей гостинице', 'Мы модернизировали сеть Wi-Fi.'),
-        ('Парковка для гостей', 'Бесплатная парковка', 'Охраняемая парковка на 50 мест.'),
-        ('Ресторан "Олимп"', 'Новое меню от шеф-повара', 'Европейская и белорусская кухня.'),
-        ('Бизнес-ланчи', 'Обеды для деловых людей', 'Скидка 10% при заказе от 5 персон.'),
     ]
-
     for title, summary, content in news_data:
         Article.objects.get_or_create(
             title=title,
@@ -211,7 +201,7 @@ def seed():
     print(f'📰 Создано {Article.objects.count()} новостей', flush=True)
 
     # =========================================================
-    # 9. ОТЗЫВЫ (15 штук)
+    # 9. ОТЗЫВЫ
     # =========================================================
     reviews_data = [
         ('Анна', 5, 'Отличный отель! Чисто, уютно, персонал вежливый. Рекомендую!'),
@@ -219,18 +209,8 @@ def seed():
         ('Екатерина', 5, 'Шикарный вид из окна. SPA понравилось. Вернусь ещё.'),
         ('Дмитрий', 3, 'Неплохо, но дороговато. В целом нормально.'),
         ('Ольга', 5, 'Лучший отель в Минске! Обслуживание на высоте.'),
-        ('Алексей', 4, 'Отличное расположение, чисто, уютно. Немного шумновато.'),
-        ('Татьяна', 5, 'Великолепные апартаменты! Приеду ещё.'),
-        ('Сергей', 4, 'Хороший отель для деловых поездок. Скоростной Wi-Fi.'),
-        ('Наталья', 5, 'Прекрасный SPA! Массажистка профессионал.'),
-        ('Павел', 4, 'Неплохо, но завтрак однообразный. Остальное хорошо.'),
-        ('Мария', 5, 'Романтический уикенд удался! Спасибо персоналу.'),
-        ('Владимир', 3, 'Номер хороший, но кондиционер шумел. Попросили переселить.'),
-        ('Елена', 5, 'Отдыхала с детьми. Детская комната супер!'),
-        ('Игорь', 4, 'Хороший отель. Цена/качество отличное.'),
-        ('Светлана', 5, 'Шикарный вид, вкусные завтраки. Обязательно вернусь!'),
+        ('Алексей', 4, 'Отличное расположение, чисто, уютно.'),
     ]
-
     for name, rating, text in reviews_data:
         Review.objects.get_or_create(
             name=name,
@@ -239,66 +219,58 @@ def seed():
     print(f'💬 Создано {Review.objects.count()} отзывов', flush=True)
 
     # =========================================================
-    # 10. ПРОМОКОДЫ (10 штук)
+    # 10. ПРОМОКОДЫ
     # =========================================================
     today = date.today()
-    promos_data = [
-        ('WELCOME10', 'Скидка 10% на первое бронирование', 10, today - timedelta(days=30), today + timedelta(days=90)),
-        ('SPRING25', 'Весенняя акция — скидка 25%', 25, today - timedelta(days=10), today + timedelta(days=30)),
-        ('SUMMER15', 'Летняя акция — скидка 15%', 15, today - timedelta(days=5), today + timedelta(days=60)),
-        ('AUTUMN20', 'Осенняя акция — скидка 20%', 20, today + timedelta(days=30), today + timedelta(days=120)),
-        ('WINTER30', 'Зимняя сказка — скидка 30%', 30, today + timedelta(days=90), today + timedelta(days=180)),
-        ('BUSINESS10', 'Для деловых людей — скидка 10%', 10, today - timedelta(days=20), today + timedelta(days=45)),
-        ('FAMILY15', 'Семейный отдых — скидка 15%', 15, today - timedelta(days=15), today + timedelta(days=75)),
-        ('WEEKEND20', 'Уикенд со скидкой — 20%', 20, today - timedelta(days=7), today + timedelta(days=30)),
-        ('LOYALTY5', 'Постоянным гостям — 5%', 5, today - timedelta(days=365), today + timedelta(days=365)),
-        ('FIRST20', 'Первое бронирование — 20%', 20, today - timedelta(days=60), today + timedelta(days=60)),
-    ]
-
-    for code, desc, percent, v_from, v_to in promos_data:
-        PromoCode.objects.get_or_create(
-            code=code,
-            defaults={
-                'description': desc,
-                'discount_percent': percent,
-                'valid_from': v_from,
-                'valid_to': v_to,
-                'is_active': True
-            }
-        )
+    PromoCode.objects.get_or_create(
+        code='WELCOME10',
+        defaults={
+            'description': 'Скидка 10% на первое бронирование',
+            'discount_percent': 10,
+            'valid_from': today - timedelta(days=30),
+            'valid_to': today + timedelta(days=90),
+            'is_active': True
+        }
+    )
+    PromoCode.objects.get_or_create(
+        code='SPRING25',
+        defaults={
+            'description': 'Весенняя акция — скидка 25%',
+            'discount_percent': 25,
+            'valid_from': today - timedelta(days=10),
+            'valid_to': today + timedelta(days=30),
+            'is_active': True
+        }
+    )
     print(f'🎫 Создано {PromoCode.objects.count()} промокодов', flush=True)
 
     # =========================================================
-    # 11. ВАКАНСИИ (10 штук)
+    # 11. ВАКАНСИИ
     # =========================================================
-    vacancies_data = [
-        ('Администратор ресепшн', 'Встреча гостей, оформление броней.', 'Английский язык, опыт от 1 года.', 800, 1200),
-        ('Горничная', 'Уборка номеров и общественных зон.', 'Опыт не обязателен.', 600, 800),
-        ('Менеджер по бронированию', 'Работа с заявками, консультации.', 'Английский, опыт в гостиничном бизнесе.', 1000, 1500),
-        ('Шеф-повар', 'Руководство кухней ресторана.', 'Опыт работы от 3 лет.', 1500, 2500),
-        ('Официант', 'Обслуживание гостей ресторана.', 'Приветствуется опыт.', 500, 700),
-        ('SPA-терапевт', 'Массаж, уход за телом.', 'Наличие сертификатов.', 800, 1200),
-        ('Инженер', 'Обслуживание инженерных систем.', 'Высшее техническое образование.', 1000, 1500),
-        ('Бухгалтер', 'Ведение учёта и отчётности.', 'Опыт от 2 лет.', 900, 1300),
-        ('Маркетолог', 'Продвижение гостиницы.', 'Опыт в digital-маркетинге.', 1000, 1600),
-        ('Охранник', 'Обеспечение безопасности гостей.', 'Удостоверение ЧОП.', 600, 800),
-    ]
-
-    for title, desc, req, sal_from, sal_to in vacancies_data:
-        Vacancy.objects.get_or_create(
-            title=title,
-            defaults={
-                'description': desc,
-                'requirements': req,
-                'salary_from': sal_from,
-                'salary_to': sal_to,
-                'is_active': True
-            }
-        )
+    Vacancy.objects.get_or_create(
+        title='Администратор ресепшн',
+        defaults={
+            'description': 'Встреча гостей, оформление броней.',
+            'requirements': 'Английский язык, опыт от 1 года.',
+            'salary_from': 800,
+            'salary_to': 1200,
+            'is_active': True
+        }
+    )
+    Vacancy.objects.get_or_create(
+        title='Горничная',
+        defaults={
+            'description': 'Уборка номеров и общественных зон.',
+            'requirements': 'Опыт не обязателен.',
+            'salary_from': 600,
+            'salary_to': 800,
+            'is_active': True
+        }
+    )
     print(f'💼 Создано {Vacancy.objects.count()} вакансий', flush=True)
 
     # =========================================================
-    # 12. СЛОВАРЬ ТЕРМИНОВ (10 штук)
+    # 12. СЛОВАРЬ ТЕРМИНОВ
     # =========================================================
     terms_data = [
         ('Check-in', 'Время заезда в отель (обычно после 14:00).'),
@@ -306,29 +278,23 @@ def seed():
         ('Консьерж', 'Сотрудник отеля, помогающий гостям с различными услугами.'),
         ('Люкс', 'Номер повышенной комфортности с дополнительными услугами.'),
         ('Овербукинг', 'Ситуация, когда забронировано больше номеров, чем есть в наличии.'),
-        ('Депозит', 'Предварительная оплата за проживание или страховка.'),
-        ('Двойное занятие', 'Проживание двух гостей в одном номере.'),
-        ('Поздний выезд', 'Возможность выехать из номера позже стандартного времени.'),
-        ('Ранний заезд', 'Возможность заехать в номер раньше стандартного времени.'),
-        ('Континентальный завтрак', 'Лёгкий завтрак из кофе/чая, выпечки, масла, джема.'),
     ]
-
     for term, definition in terms_data:
         GlossaryTerm.objects.get_or_create(term=term, defaults={'definition': definition})
     print(f'📚 Создано {GlossaryTerm.objects.count()} терминов', flush=True)
 
     # =========================================================
-    # 13. БРОНИ (30 штук для статистики)
+    # 13. БРОНИ
     # =========================================================
     rooms_list = list(Room.objects.all())
     clients_list = list(Client.objects.all())
     statuses = ['confirmed', 'confirmed', 'checked_in', 'checked_out', 'confirmed', 'checked_out', 'cancelled']
 
-    for i in range(30):
+    for i in range(20):
         room = rooms_list[i % len(rooms_list)]
         client = clients_list[i % len(clients_list)]
-        check_in = today - timedelta(days=i * 2 + 5)
-        check_out = check_in + timedelta(days=random.randint(1, 7))
+        check_in = today - timedelta(days=i * 3 + 5)
+        check_out = check_in + timedelta(days=random.randint(1, 5))
         status = random.choice(statuses)
         total = room.price_per_night * (check_out - check_in).days
 
@@ -341,32 +307,23 @@ def seed():
                 'status': status,
                 'guests_count': min(room.capacity, random.randint(1, 4)),
                 'total_price': total,
-                'special_requests': 'Просьба о тихом номере' if i % 3 == 0 else ''
             }
         )
     print(f'📅 Создано {Booking.objects.count()} броней', flush=True)
 
     # =========================================================
-    # 14. ИТОГОВАЯ СТАТИСТИКА
+    # 14. ИТОГИ
     # =========================================================
     print("\n" + "=" * 50)
     print("ЗАГРУЗКА ЗАВЕРШЕНА УСПЕШНО!")
     print("=" * 50)
     print(f"👤 Суперпользователь: admin / admin123")
-    print(f"👔 Сотрудники: receptionist_a / emp123, manager_b / emp123, concierge_c / emp123")
+    print(f"👔 Сотрудник: receptionist_a / emp123")
     print(f"👥 Клиент: client1 / client123")
     print(f"📊 Статистика сайта:")
-    print(f"   - Пользователей: {User.objects.count()}")
-    print(f"   - Сотрудников: {Employee.objects.count()}")
-    print(f"   - Клиентов: {Client.objects.count()}")
-    print(f"   - Категорий: {RoomCategory.objects.count()}")
     print(f"   - Номеров: {Room.objects.count()}")
-    print(f"   - Новостей: {Article.objects.count()}")
-    print(f"   - Отзывов: {Review.objects.count()}")
-    print(f"   - Промокодов: {PromoCode.objects.count()}")
-    print(f"   - Вакансий: {Vacancy.objects.count()}")
-    print(f"   - Терминов: {GlossaryTerm.objects.count()}")
     print(f"   - Броней: {Booking.objects.count()}")
+    print(f"   - Клиентов: {Client.objects.count()}")
     print("=" * 50, flush=True)
 
 if __name__ == '__main__':

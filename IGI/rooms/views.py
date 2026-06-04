@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count, Sum, Avg
+from django.db.models.functions import TruncMonth
 from django.core.paginator import Paginator
 from django.utils import timezone
 from .models import (Room, RoomCategory, Booking, Client, Employee,
@@ -51,7 +52,6 @@ def home(request):
         logger.warning(f'Joke API error: {e}')
 
     now = timezone.now()
-    # Calendar for current month
     import calendar as cal
     local_now = timezone.localtime(now)
     cal_matrix = cal.monthcalendar(local_now.year, local_now.month)
@@ -136,7 +136,7 @@ def reviews(request):
             rv.author = request.user
             if not rv.name:
                 rv.name = request.user.get_full_name() or request.user.username
-            rv.is_approved = True  # Авто-одобрение — без модерации
+            rv.is_approved = True
             rv.save()
             messages.success(request, 'Спасибо! Ваш отзыв опубликован.')
             return redirect('rooms:reviews')
@@ -146,8 +146,8 @@ def reviews(request):
 @login_required
 def review_update(request, pk):
     review = get_object_or_404(Review, pk=pk)
-    # Разрешаем редактирование автору или администратору
-    if not (request.user.is_staff or review.author == request.user):
+    # Сотрудник или админ могут редактировать любые отзывы
+    if not (request.user.is_staff or request.user.is_employee() or review.author == request.user):
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:reviews')
     if request.method == 'POST':
@@ -166,7 +166,8 @@ def review_update(request, pk):
 @login_required
 def review_delete(request, pk):
     review = get_object_or_404(Review, pk=pk)
-    if not (request.user.is_staff or review.author == request.user):
+    # Сотрудник или админ могут удалять любые отзывы
+    if not (request.user.is_staff or request.user.is_employee() or review.author == request.user):
         messages.error(request, 'Нет доступа.')
         return redirect('rooms:reviews')
     if request.method == 'POST':
@@ -268,19 +269,14 @@ def room_delete(request, pk):
     return render(request, 'rooms/room_confirm_delete.html', {'room': room})
 
 
-# ══════════════════════════ БРОНИ (CRUD) ══════════════════════════
+# ══════════════════════════ БРОНИ (CRUD) — РАСШИРЕННЫЙ ДОСТУП ДЛЯ СОТРУДНИКА ══════════════════════════
 
 @login_required
 def booking_list(request):
-    if request.user.is_staff:
+    # Сотрудник и админ видят ВСЕ брони, клиент — только свои
+    if request.user.is_staff or request.user.is_employee():
         qs = Booking.objects.all().select_related('room', 'client', 'employee')
-    elif request.user.is_employee():
-        try:
-            emp = request.user.employee_profile
-            qs = Booking.objects.filter(employee=emp)
-        except Exception:
-            qs = Booking.objects.none()
-    elif request.user.is_client():
+    elif hasattr(request.user, 'is_client') and request.user.is_client():
         try:
             client = request.user.client_profile
             qs = Booking.objects.filter(client=client)
@@ -304,6 +300,16 @@ def booking_list(request):
 @login_required
 def booking_detail(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
+    # Проверка доступа: админ, сотрудник или владелец-клиент
+    is_owner = False
+    if hasattr(request.user, 'is_client') and request.user.is_client():
+        try:
+            is_owner = booking.client == request.user.client_profile
+        except Exception:
+            pass
+    if not (request.user.is_staff or request.user.is_employee() or is_owner):
+        messages.error(request, 'Нет доступа.')
+        return redirect('rooms:booking_list')
     payments = booking.payments.all()
     return render(request, 'rooms/booking_detail.html',
                   {'booking': booking, 'payments': payments})
@@ -311,8 +317,7 @@ def booking_detail(request, pk):
 
 @login_required
 def booking_create(request):
-    # Клиенты тоже могут бронировать
-    is_client = request.user.is_client() if hasattr(request.user, 'is_client') else False
+    is_client = hasattr(request.user, 'is_client') and request.user.is_client()
     is_staff_or_emp = request.user.is_staff or (hasattr(request.user, 'is_employee') and request.user.is_employee())
 
     if not (is_staff_or_emp or is_client):
@@ -326,14 +331,12 @@ def booking_create(request):
             form = ClientBookingForm(request.POST)
         if form.is_valid():
             booking = form.save(commit=False)
-            # Авто-подтверждение — без ожидания модерации
             booking.status = 'confirmed'
             if is_client:
                 try:
                     booking.client = request.user.client_profile
                 except Exception:
                     pass
-            # Рассчитываем стоимость
             if booking.check_in and booking.check_out and booking.room_id:
                 nights = (booking.check_out - booking.check_in).days
                 if nights > 0:
@@ -364,7 +367,10 @@ def booking_update(request, pk):
         return redirect('rooms:booking_list')
 
     if request.method == 'POST':
-        form = BookingForm(request.POST, instance=booking) if is_staff_or_emp else ClientBookingForm(request.POST, instance=booking)
+        if is_staff_or_emp:
+            form = BookingForm(request.POST, instance=booking)
+        else:
+            form = ClientBookingForm(request.POST, instance=booking)
         if form.is_valid():
             b = form.save(commit=False)
             if b.check_in and b.check_out and b.room_id:
@@ -375,7 +381,10 @@ def booking_update(request, pk):
             messages.success(request, 'Бронь обновлена!')
             return redirect('rooms:booking_detail', pk=pk)
     else:
-        form = BookingForm(instance=booking) if is_staff_or_emp else ClientBookingForm(instance=booking)
+        if is_staff_or_emp:
+            form = BookingForm(instance=booking)
+        else:
+            form = ClientBookingForm(instance=booking)
     return render(request, 'rooms/booking_form.html',
                   {'form': form, 'title': f'Редактировать бронь #{pk}', 'booking': booking})
 
@@ -402,7 +411,7 @@ def booking_delete(request, pk):
     return render(request, 'rooms/booking_confirm_delete.html', {'booking': booking})
 
 
-# ══════════════════════════ КЛИЕНТЫ (CRUD) ══════════════════════════
+# ══════════════════════════ КЛИЕНТЫ (CRUD) — ДЛЯ СОТРУДНИКА И АДМИНА ══════════════════════════
 
 @login_required
 def client_list(request):
@@ -470,16 +479,13 @@ def client_delete(request, pk):
     return render(request, 'rooms/client_confirm_delete.html', {'client': client})
 
 
-# ══════════════════════════ СТАТИСТИКА ══════════════════════════
+# ══════════════════════════ СТАТИСТИКА — ТОЛЬКО ДЛЯ АДМИНА ══════════════════════════
 
 @login_required
 def statistics(request):
-    if not (request.user.is_staff or request.user.is_employee()):
-        messages.error(request, 'Нет доступа.')
-        return redirect('rooms:room_list')
-
-    from django.db.models.functions import TruncMonth
-    import json
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ только для администратора')
+        return redirect('rooms:home')
 
     completed = Booking.objects.filter(status='checked_out')
     total_revenue = completed.aggregate(s=Sum('total_price'))['s'] or 0
@@ -511,6 +517,7 @@ def statistics(request):
         bookings_cnt=Count('bookings'), revenue=Sum('bookings__total_price')
     ).order_by('-bookings_cnt')[:5]
 
+    import json
     def to_json(qs):
         result = []
         for item in qs:
@@ -549,15 +556,14 @@ def statistics(request):
 
 @login_required
 def chart_python(request):
-    if not (request.user.is_staff or request.user.is_employee()):
-        messages.error(request, 'Нет доступа.')
-        return redirect('rooms:room_list')
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ только для администратора')
+        return redirect('rooms:home')
 
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
-    from django.db.models.functions import TruncMonth
 
     monthly = Booking.objects.filter(status='checked_out').annotate(
         month=TruncMonth('created_at')
