@@ -69,23 +69,45 @@ def seed():
     )
     print('🏢 Создана информация о компании', flush=True)
     
-    # ==================== 3. СОТРУДНИКИ ====================
-    employees_data = [
-        ('Анна', 'Иванова', 'admin', 'Администратор', '+375 (29) 111-11-11'),
-        ('Сергей', 'Петров', 'manager', 'Менеджер', '+375 (33) 222-22-22'),
-        ('Татьяна', 'Сидорова', 'concierge', 'Консьерж', '+375 (44) 333-33-33'),
-        ('Ольга', 'Смирнова', 'cleaner', 'Горничная', '+375 (29) 444-44-44'),
-        ('Дмитрий', 'Козлов', 'security', 'Охрана', '+375 (33) 555-55-55'),
+    # ==================== 3. СОТРУДНИКИ (через связь с User) ====================
+    # Сначала создаём пользователей-сотрудников
+    employee_users = [
+        ('anna_i', 'anna@hotel.by', 'emp123', 'Анна', 'Иванова', '+375291111111'),
+        ('sergey_p', 'sergey@hotel.by', 'emp123', 'Сергей', 'Петров', '+375332222222'),
+        ('tatyana_s', 'tatyana@hotel.by', 'emp123', 'Татьяна', 'Сидорова', '+375443333333'),
+        ('olga_s', 'olga@hotel.by', 'emp123', 'Ольга', 'Смирнова', '+375294444444'),
+        ('dmitry_k', 'dmitry@hotel.by', 'emp123', 'Дмитрий', 'Козлов', '+375335555555'),
     ]
-    for first, last, pos, pos_display, phone in employees_data:
-        Employee.objects.get_or_create(
-            first_name=first,
-            last_name=last,
+    
+    for username, email, pwd, first, last, phone in employee_users:
+        user, _ = User.objects.get_or_create(
+            username=username,
             defaults={
-                'position': pos,
+                'email': email,
+                'first_name': first,
+                'last_name': last,
+                'phone': phone
+            }
+        )
+        if _:
+            user.set_password(pwd)
+            user.save()
+            print(f'👤 Создан сотрудник {username}', flush=True)
+        
+        # Теперь создаём профиль сотрудника
+        position_map = {
+            'anna_i': 'admin',
+            'sergey_p': 'manager', 
+            'tatyana_s': 'concierge',
+            'olga_s': 'cleaner',
+            'dmitry_k': 'security',
+        }
+        Employee.objects.get_or_create(
+            user=user,
+            defaults={
+                'position': position_map[username],
                 'hire_date': date(2023, 1, 1),
                 'salary': 800,
-                'phone': phone,
                 'is_active': True
             }
         )
